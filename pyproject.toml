@@ -1,0 +1,88 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "coinnectar"
+version = "0.8.2"
+description = "Lightweight secure data serialization and basic cryptographic primitives for fintech and internal infrastructure."
+readme = "README.md"
+requires-python = ">=3.8"
+license = "MIT"
+authors = [
+    { name = "Elias Varga", email = "elias.varga@coinnectar.org" },
+    { name = "Coinnectar Contributors" }
+]
+maintainers = [
+    { name = "Elias Varga", email = "elias.varga@coinnectar.org" }
+]
+keywords = [
+    "serialization",
+    "cryptography",
+    "fintech",
+    "hmac",
+    "binary-format",
+    "constant-time",
+    "security"
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: C",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security :: Cryptography",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed"
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "mypy>=1.4.0",
+    "ruff>=0.1.0",
+    "black>=23.0.0",
+    "wheel>=0.38.0"
+]
+
+[project.urls]
+Homepage = "https://github.com/coinnectar/coinnectar"
+Documentation = "https://coinnectar.readthedocs.io/"
+Repository = "https://github.com/coinnectar/coinnectar.git"
+Issues = "https://github.com/coinnectar/coinnectar/issues"
+Changelog = "https://github.com/coinnectar/coinnectar/blob/main/CHANGELOG.md"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+coinnectar = ["py.typed"]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q --strict-markers"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py38"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "C4", "UP"]
+ignore = ["E501"]
