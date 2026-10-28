@@ -23,10 +23,17 @@ extern "C" {
 
 /* Protocol Constants */
 #define CN_MAGIC_U32            0x434E4354U /* ASCII "CNCT" */
-#define CN_PROTOCOL_VERSION     0x01
+#define CN_PROTOCOL_VERSION_V1  0x01
+#define CN_PROTOCOL_VERSION_V2  0x02
+#define CN_PROTOCOL_VERSION     CN_PROTOCOL_VERSION_V1
 #define CN_HEADER_SIZE          14
 #define CN_MAX_PAYLOAD_SIZE     (64 * 1024 * 1024) /* 64 MB security limit */
 #define CN_MAX_RECURSION_DEPTH  128
+
+/* Protocol Wire Flags */
+#define CN_FLAG_NONE            0x00
+#define CN_FLAG_COMPRESSED      0x01
+#define CN_FLAG_AUTHENTICATED   0x02
 
 /* Serialization Type Tags */
 #define CN_TYPE_NULL            0x00

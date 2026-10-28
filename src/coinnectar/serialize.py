@@ -28,10 +28,18 @@ except ImportError:
 # Protocol Wire Constants
 MAGIC: bytes = b"CNCT"
 MAGIC_U32: int = 0x434E4354
-PROTOCOL_VERSION: int = 1
+PROTOCOL_VERSION_V1: int = 1
+PROTOCOL_VERSION_V2: int = 2
+PROTOCOL_VERSION: int = PROTOCOL_VERSION_V1
+SUPPORTED_VERSIONS: set[int] = {PROTOCOL_VERSION_V1, PROTOCOL_VERSION_V2}
 HEADER_SIZE: int = 14
 DEFAULT_MAX_PAYLOAD_SIZE: int = 64 * 1024 * 1024  # 64 MB
 DEFAULT_MAX_RECURSION_DEPTH: int = 128
+
+# Protocol Header Flags
+FLAG_NONE: int = 0x00
+FLAG_COMPRESSED: int = 0x01
+FLAG_AUTHENTICATED: int = 0x02
 
 # Type Tags
 TAG_NULL: int = 0x00
@@ -54,9 +62,13 @@ class Serializer:
         self,
         max_payload_size: int = DEFAULT_MAX_PAYLOAD_SIZE,
         max_recursion_depth: int = DEFAULT_MAX_RECURSION_DEPTH,
+        protocol_version: int = PROTOCOL_VERSION,
     ) -> None:
+        if protocol_version not in SUPPORTED_VERSIONS:
+            raise VersionMismatchError(f"Unsupported protocol version {protocol_version}")
         self.max_payload_size = max_payload_size
         self.max_recursion_depth = max_recursion_depth
+        self.protocol_version = protocol_version
 
     def _pack_value(self, obj: Any, buf: io.BytesIO, depth: int) -> None:
         if depth > self.max_recursion_depth:
@@ -194,7 +206,7 @@ class Serializer:
             )
 
         crc = crc32_checksum(body)
-        header = struct.pack(">4sBBI I", MAGIC, PROTOCOL_VERSION, flags, crc, len(body))
+        header = struct.pack(">4sBBI I", MAGIC, self.protocol_version, flags, crc, len(body))
         return header + body
 
     def deserialize(self, raw: bytes) -> Any:
@@ -221,18 +233,18 @@ class Serializer:
                 else:
                     raise SerializationError(msg) from exc
 
-            if version != PROTOCOL_VERSION:
+            if version not in SUPPORTED_VERSIONS:
                 raise VersionMismatchError(
-                    f"Unsupported protocol version {version} (expected {PROTOCOL_VERSION})"
+                    f"Unsupported protocol version {version} (supported: {SUPPORTED_VERSIONS})"
                 )
         else:
             # Pure Python header parsing and validation
             magic, version, flags, crc, length = struct.unpack(">4sBBI I", raw[:HEADER_SIZE])
             if magic != MAGIC:
                 raise SerializationError(f"Invalid Coinnectar magic signature: {magic!r}")
-            if version != PROTOCOL_VERSION:
+            if version not in SUPPORTED_VERSIONS:
                 raise VersionMismatchError(
-                    f"Unsupported protocol version {version} (expected {PROTOCOL_VERSION})"
+                    f"Unsupported protocol version {version} (supported: {SUPPORTED_VERSIONS})"
                 )
             if length > self.max_payload_size:
                 raise SerializationError(
@@ -263,6 +275,7 @@ class Serializer:
 
 
 _DEFAULT_SERIALIZER = Serializer()
+_V2_SERIALIZER = Serializer(protocol_version=PROTOCOL_VERSION_V2)
 
 
 def is_serializable(obj: Any) -> bool:
@@ -304,9 +317,16 @@ def peek_payload_size(data: bytes) -> int:
 
 def dumps(obj: Any) -> bytes:
     """
-    Serialize an object into Coinnectar binary format.
+    Serialize an object into Coinnectar binary format (v1).
     """
     return _DEFAULT_SERIALIZER.serialize(obj)
+
+
+def dumps_v2(obj: Any, flags: int = FLAG_NONE) -> bytes:
+    """
+    Serialize an object into Coinnectar v2 binary format with optional header flags.
+    """
+    return _V2_SERIALIZER.serialize(obj, flags=flags)
 
 
 def loads(data: bytes, max_size: int = DEFAULT_MAX_PAYLOAD_SIZE) -> Any:

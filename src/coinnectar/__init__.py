@@ -35,9 +35,16 @@ from coinnectar.crypto import (
     xor_mask,
 )
 from coinnectar.serialize import (
+    FLAG_AUTHENTICATED,
+    FLAG_COMPRESSED,
+    FLAG_NONE,
+    PROTOCOL_VERSION_V1,
+    PROTOCOL_VERSION_V2,
+    SUPPORTED_VERSIONS,
     Serializer,
     dump,
     dumps,
+    dumps_v2,
     is_serializable,
     load,
     loads,

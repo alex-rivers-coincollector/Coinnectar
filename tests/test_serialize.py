@@ -26,6 +26,9 @@ from coinnectar import (
     SecurityError,
     is_serializable,
     peek_payload_size,
+    dumps_v2,
+    PROTOCOL_VERSION_V2,
+    FLAG_COMPRESSED,
 )
 
 
@@ -182,6 +185,15 @@ class TestSerializationIntegrity(unittest.TestCase):
 
         self.assertFalse(is_serializable(NotSerializable()))
         self.assertFalse(is_serializable({"nested": NotSerializable()}))
+
+
+    def test_v2_payload_roundtrip(self):
+        data = {"v2_record": True, "amount": 99.99}
+        packed_v2 = dumps_v2(data, flags=FLAG_COMPRESSED)
+        self.assertEqual(packed_v2[4], PROTOCOL_VERSION_V2)
+        self.assertEqual(packed_v2[5], FLAG_COMPRESSED)
+        unpacked = loads(packed_v2)
+        self.assertEqual(unpacked, data)
 
 
 class TestEnvelope(unittest.TestCase):

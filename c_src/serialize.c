@@ -93,7 +93,7 @@ PyObject* py_cn_fast_validate_header(PyObject *self, PyObject *args) {
     uint8_t version = ptr[4];
     uint8_t flags   = ptr[5];
 
-    if (version != CN_PROTOCOL_VERSION) {
+    if (version != CN_PROTOCOL_VERSION_V1 && version != CN_PROTOCOL_VERSION_V2) {
         PyBuffer_Release(&buf);
         PyErr_SetString(PyExc_ValueError, "Unsupported protocol version");
         return NULL;
