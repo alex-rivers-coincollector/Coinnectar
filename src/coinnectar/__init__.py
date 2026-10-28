@@ -38,8 +38,10 @@ from coinnectar.serialize import (
     Serializer,
     dump,
     dumps,
+    is_serializable,
     load,
     loads,
+    peek_payload_size,
 )
 from coinnectar.utils import (
     crc32_checksum,
@@ -72,6 +74,8 @@ __all__ = [
     "loads",
     "dump",
     "load",
+    "is_serializable",
+    "peek_payload_size",
     # Cryptographic primitives
     "constant_time_compare",
     "sign_payload",

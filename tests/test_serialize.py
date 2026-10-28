@@ -24,6 +24,8 @@ from coinnectar import (
     IntegrityError,
     VersionMismatchError,
     SecurityError,
+    is_serializable,
+    peek_payload_size,
 )
 
 
@@ -161,6 +163,25 @@ class TestSerializationIntegrity(unittest.TestCase):
 
         with self.assertRaises(SerializationError):
             serializer.serialize(deeply_nested)
+
+
+    def test_peek_payload_size(self):
+        packet = dumps({"account": "A100", "balance": 5000})
+        size = peek_payload_size(packet)
+        self.assertGreater(size, 0)
+        self.assertEqual(len(packet), 14 + size)
+
+        with self.assertRaises(SerializationError):
+            peek_payload_size(b"too_short")
+
+    def test_is_serializable(self):
+        self.assertTrue(is_serializable({"valid": 123, "items": [True, None]}))
+
+        class NotSerializable:
+            pass
+
+        self.assertFalse(is_serializable(NotSerializable()))
+        self.assertFalse(is_serializable({"nested": NotSerializable()}))
 
 
 class TestEnvelope(unittest.TestCase):

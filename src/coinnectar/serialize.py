@@ -265,6 +265,43 @@ class Serializer:
 _DEFAULT_SERIALIZER = Serializer()
 
 
+def is_serializable(obj: Any) -> bool:
+    """
+    Check whether a given Python object can be serialized by Coinnectar.
+
+    Returns True if serializable, False if the object or any nested component
+    contains an unsupported type.
+    """
+    try:
+        dumps(obj)
+        return True
+    except (SerializationError, TypeError, ValueError):
+        return False
+
+
+def peek_payload_size(data: bytes) -> int:
+    """
+    Read the advertised payload size in bytes directly from a wire header.
+
+    Args:
+        data: Raw Coinnectar packet bytes.
+
+    Returns:
+        Payload size in bytes.
+
+    Raises:
+        SerializationError: If buffer is smaller than header size or magic is invalid.
+    """
+    if len(data) < HEADER_SIZE:
+        raise SerializationError(
+            f"Buffer length ({len(data)}) is smaller than header size ({HEADER_SIZE})"
+        )
+    magic = data[:4]
+    if magic != MAGIC:
+        raise SerializationError(f"Invalid magic signature: {magic!r}")
+    return struct.unpack(">I", data[10:14])[0]
+
+
 def dumps(obj: Any) -> bytes:
     """
     Serialize an object into Coinnectar binary format.
