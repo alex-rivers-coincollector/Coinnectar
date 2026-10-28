@@ -135,6 +135,75 @@ PyObject* py_cn_fast_validate_header(PyObject *self, PyObject *args) {
     return Py_BuildValue("(BBIk)", version, flags, crc, length);
 }
 
+int cn_pack_header(uint8_t *dest, uint8_t version, uint8_t flags, uint32_t crc32, uint32_t length) {
+    if (!dest) {
+        return CN_ERR_CORRUPT_DATA;
+    }
+    /* Magic bytes: "CNCT" */
+    dest[0] = 0x43;
+    dest[1] = 0x4E;
+    dest[2] = 0x43;
+    dest[3] = 0x54;
+    dest[4] = version;
+    dest[5] = flags;
+    /* Big-endian CRC32 */
+    dest[6] = (uint8_t)((crc32 >> 24) & 0xFF);
+    dest[7] = (uint8_t)((crc32 >> 16) & 0xFF);
+    dest[8] = (uint8_t)((crc32 >> 8) & 0xFF);
+    dest[9] = (uint8_t)(crc32 & 0xFF);
+    /* Big-endian Length */
+    dest[10] = (uint8_t)((length >> 24) & 0xFF);
+    dest[11] = (uint8_t)((length >> 16) & 0xFF);
+    dest[12] = (uint8_t)((length >> 8) & 0xFF);
+    dest[13] = (uint8_t)(length & 0xFF);
+    return CN_SUCCESS;
+}
+
+int cn_unpack_header(const uint8_t *src, size_t src_len, cn_header_t *out_header) {
+    if (!src || src_len < CN_HEADER_SIZE || !out_header) {
+        return CN_ERR_CORRUPT_DATA;
+    }
+    uint32_t magic = ((uint32_t)src[0] << 24) |
+                     ((uint32_t)src[1] << 16) |
+                     ((uint32_t)src[2] << 8)  |
+                     ((uint32_t)src[3]);
+    if (magic != CN_MAGIC_U32) {
+        return CN_ERR_INVALID_MAGIC;
+    }
+    out_header->magic = magic;
+    out_header->version = src[4];
+    out_header->flags = src[5];
+    out_header->crc32 = ((uint32_t)src[6] << 24) |
+                        ((uint32_t)src[7] << 16) |
+                        ((uint32_t)src[8] << 8)  |
+                        ((uint32_t)src[9]);
+    out_header->length = ((uint32_t)src[10] << 24) |
+                         ((uint32_t)src[11] << 16) |
+                         ((uint32_t)src[12] << 8)  |
+                         ((uint32_t)src[13]);
+    return CN_SUCCESS;
+}
+
+PyObject* py_cn_pack_header(PyObject *self, PyObject *args) {
+    unsigned char version;
+    unsigned char flags;
+    unsigned long crc32;
+    unsigned long length;
+
+    if (!PyArg_ParseTuple(args, "BBkk", &version, &flags, &crc32, &length)) {
+        return NULL;
+    }
+
+    PyObject *res = PyBytes_FromStringAndSize(NULL, CN_HEADER_SIZE);
+    if (!res) {
+        return PyErr_NoMemory();
+    }
+
+    uint8_t *buf = (uint8_t *)PyBytes_AS_STRING(res);
+    cn_pack_header(buf, version, flags, (uint32_t)crc32, (uint32_t)length);
+    return res;
+}
+
 /* Method Table */
 static PyMethodDef CoinnectarNativeMethods[] = {
     {
@@ -160,6 +229,12 @@ static PyMethodDef CoinnectarNativeMethods[] = {
         py_cn_fast_validate_header,
         METH_VARARGS,
         "Validate header magic, checksum, and payload bounds."
+    },
+    {
+        "pack_header",
+        py_cn_pack_header,
+        METH_VARARGS,
+        "Pack a 14-byte wire header using optimized C formatting."
     },
     {NULL, NULL, 0, NULL}
 };

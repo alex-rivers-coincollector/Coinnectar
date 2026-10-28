@@ -206,7 +206,10 @@ class Serializer:
             )
 
         crc = crc32_checksum(body)
-        header = struct.pack(">4sBBI I", MAGIC, self.protocol_version, flags, crc, len(body))
+        if _HAS_NATIVE and _native is not None and hasattr(_native, "pack_header"):
+            header = _native.pack_header(self.protocol_version, flags, crc, len(body))
+        else:
+            header = struct.pack(">4sBBI I", MAGIC, self.protocol_version, flags, crc, len(body))
         return header + body
 
     def deserialize(self, raw: bytes) -> Any:

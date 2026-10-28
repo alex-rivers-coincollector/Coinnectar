@@ -72,12 +72,15 @@ typedef struct {
 uint32_t cn_crc32(const uint8_t *data, size_t length);
 int cn_constant_time_memcmp(const uint8_t *a, const uint8_t *b, size_t length);
 void cn_xor_mask(uint8_t *dest, const uint8_t *src, size_t len, const uint8_t *key, size_t key_len);
+int cn_pack_header(uint8_t *dest, uint8_t version, uint8_t flags, uint32_t crc32, uint32_t length);
+int cn_unpack_header(const uint8_t *src, size_t src_len, cn_header_t *out_header);
 
 /* Python C-API Function Declarations */
 PyObject* py_cn_crc32(PyObject *self, PyObject *args);
 PyObject* py_cn_constant_time_compare(PyObject *self, PyObject *args);
 PyObject* py_cn_xor_mask(PyObject *self, PyObject *args);
 PyObject* py_cn_fast_validate_header(PyObject *self, PyObject *args);
+PyObject* py_cn_pack_header(PyObject *self, PyObject *args);
 
 #ifdef __cplusplus
 }
