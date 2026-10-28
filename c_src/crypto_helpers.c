@@ -45,6 +45,24 @@ void cn_xor_mask(uint8_t *dest, const uint8_t *src, size_t len, const uint8_t *k
         return;
     }
 
+    /* Fast 64-bit word chunking when key length is 8 and buffers are 8-byte aligned */
+    if (key_len == 8 && len >= 8 && (((uintptr_t)dest | (uintptr_t)src) % sizeof(uint64_t) == 0)) {
+        uint64_t k64;
+        memcpy(&k64, key, 8);
+        size_t words = len / 8;
+        uint64_t *d64 = (uint64_t *)dest;
+        const uint64_t *s64 = (const uint64_t *)src;
+        for (size_t i = 0; i < words; i++) {
+            d64[i] = s64[i] ^ k64;
+        }
+        size_t rem = len % 8;
+        size_t offset = words * 8;
+        for (size_t i = 0; i < rem; i++) {
+            dest[offset + i] = src[offset + i] ^ key[i];
+        }
+        return;
+    }
+
     for (size_t i = 0; i < len; i++) {
         dest[i] = src[i] ^ key[i % key_len];
     }
