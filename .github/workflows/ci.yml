@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install -e .
+
+      - name: Run unit test suite (Native C Acceleration)
+        run: |
+          python -m unittest discover -s tests -p "test_*.py"
+
+      - name: Run unit test suite (Pure Python Fallback Mode)
+        run: |
+          python -c "import coinnectar.serialize; coinnectar.serialize._HAS_NATIVE = False; import unittest; loader = unittest.TestLoader(); suite = loader.discover('tests'); runner = unittest.TextTestRunner(); res = runner.run(suite); assert res.wasSuccessful()"
