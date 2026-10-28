@@ -87,7 +87,9 @@ def pkcs7_unpad(data: bytes, block_size: int = 16) -> bytes:
 
     expected_padding = bytes([padding_len]) * padding_len
     if data[-padding_len:] != expected_padding:
-        raise ValueError("Corrupt PKCS#7 padding sequence")
+        raise ValueError(
+            f"Corrupt PKCS#7 padding sequence: expected {padding_len} bytes of 0x{padding_len:02x}, got {data[-padding_len:]!r}"
+        )
 
     return data[:-padding_len]
 

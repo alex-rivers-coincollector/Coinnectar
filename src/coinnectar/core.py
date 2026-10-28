@@ -132,7 +132,9 @@ class Envelope:
             raise IntegrityError("Corrupted signature format: invalid hex") from exc
 
         if not constant_time_compare(actual, expected):
-            raise IntegrityError("Envelope signature verification failed")
+            raise IntegrityError(
+                f"Envelope signature verification failed for payload_id={self.payload_id!r}"
+            )
 
         return True
 

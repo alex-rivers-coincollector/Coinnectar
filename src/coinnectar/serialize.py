@@ -123,9 +123,10 @@ class Serializer:
                 f"Maximum recursion depth ({self.max_recursion_depth}) exceeded during deserialization"
             )
 
+        offset = reader.tell()
         tag_byte = reader.read(1)
         if not tag_byte:
-            raise SerializationError("Unexpected EOF while reading type tag")
+            raise SerializationError(f"Unexpected EOF while reading type tag at byte offset {offset}")
 
         tag = tag_byte[0]
         if tag == TAG_NULL:
@@ -190,7 +191,7 @@ class Serializer:
                 res[k] = v
             return res
         else:
-            raise SerializationError(f"Unknown or invalid type tag: 0x{tag:02x}")
+            raise SerializationError(f"Unknown or invalid type tag 0x{tag:02x} at byte offset {offset}")
 
     def serialize(self, obj: Any, flags: int = 0) -> bytes:
         """
