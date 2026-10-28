@@ -10,7 +10,7 @@ Maintained by Elias Varga and a small group of contributors.
 
 from __future__ import annotations
 
-__version__ = "0.8.2"
+__version__ = "1.0.0"
 __author__ = "Elias Varga and Coinnectar Contributors"
 __license__ = "MIT"
 __copyright__ = "Copyright (c) 2020-2025 Elias Varga and Coinnectar Contributors"
