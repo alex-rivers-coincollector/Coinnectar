@@ -92,10 +92,22 @@ envelope = unpack_envelope(packet, secret_key=signing_key, max_age_seconds=30)
 print(f"Verified message from {envelope.metadata['source_service']}: {envelope.data}")
 ```
 
-### 3. Cryptographic Primitives
+### 3. Cryptographic Primitives & Encrypt-then-MAC
 
 ```python
-from coinnectar import constant_time_compare, derive_key, generate_nonce, xor_mask
+from coinnectar import (
+    constant_time_compare,
+    derive_key,
+    encrypt_then_mac,
+    mac_then_decrypt,
+    generate_key,
+    xor_mask,
+)
+
+# Authenticated Encryption (Encrypt-then-MAC)
+k_enc, k_mac = generate_key(32), generate_key(32)
+ciphertext = encrypt_then_mac(b"Confidential transaction data", k_enc, k_mac)
+decrypted = mac_then_decrypt(ciphertext, k_enc, k_mac)
 
 # Side-channel safe token comparison
 is_valid = constant_time_compare(b"user_provided_token", b"stored_secret_token")

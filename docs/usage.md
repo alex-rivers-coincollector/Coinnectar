@@ -138,6 +138,25 @@ except SecurityError as e:
 
 Coinnectar provides essential cryptographic building blocks:
 
+### Authenticated Encryption (Encrypt-then-MAC)
+For end-to-end confidential message exchange across untrusted message brokers:
+```python
+from coinnectar import encrypt_then_mac, mac_then_decrypt, generate_key
+
+# 256-bit symmetric keys
+enc_key = generate_key(32)
+mac_key = generate_key(32)
+
+plaintext = b"CRITICAL_TRADE_SETTLEMENT: ACCOUNT_992 -> 500.00 BTC"
+
+# Encrypts payload and binds an HMAC-SHA256 authentication tag
+ciphertext_packet = encrypt_then_mac(plaintext, enc_key, mac_key)
+
+# Decrypts payload with constant-time MAC verification
+decrypted = mac_then_decrypt(ciphertext_packet, enc_key, mac_key)
+assert decrypted == plaintext
+```
+
 ### Constant-Time Comparison
 Prevents side-channel timing attacks when validating external API tokens or hashes:
 ```python
@@ -202,3 +221,26 @@ CoinnectarError
 1. **Always Set `max_age_seconds`:** When consuming messages from message queues (Kafka, RabbitMQ, SQS), enforce bounded expiration to protect against replay attacks.
 2. **Rotate Shared Keys:** Use `derive_key` with unique tenant/session salts rather than a single static master key across all services.
 3. **Tune Recursion Limits:** If parsing deeply nested tree structures, configure `Serializer(max_recursion_depth=...)` explicitly.
+
+---
+
+## 8. Integration Recipes
+
+### High-Throughput Redis Event Stream
+```python
+import redis
+from coinnectar import dumps, loads
+
+r = redis.Redis(host="localhost", port=6379, db=0)
+
+def publish_event(stream_name: str, payload: dict) -> str:
+    binary_frame = dumps(payload)
+    return r.xadd(stream_name, {"data": binary_frame})
+
+def consume_event(stream_name: str, last_id: str = "0-0"):
+    messages = r.xread({stream_name: last_id}, count=1, block=5000)
+    for stream, entries in messages:
+        for message_id, fields in entries:
+            event = loads(fields[b"data"])
+            yield message_id, event
+```
