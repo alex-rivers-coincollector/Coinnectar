@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "coinnectar"
-version = "1.0.0"
+version = "3.4.0"
 description = "Lightweight secure data serialization and basic cryptographic primitives for fintech and internal infrastructure."
 readme = "README.md"
 requires-python = ">=3.8"
