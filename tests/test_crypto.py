@@ -9,11 +9,14 @@ import unittest
 # Ensure src/ is on sys.path for test runner execution
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
 
+from coinnectar.core import IntegrityError
 from coinnectar.crypto import (
     constant_time_compare,
     derive_key,
+    encrypt_then_mac,
     generate_key,
     generate_nonce,
+    mac_then_decrypt,
     sign_payload,
     verify_payload,
     xor_mask,
@@ -124,6 +127,41 @@ class TestCryptoPrimitives(unittest.TestCase):
     def test_xor_mask_empty_key(self):
         with self.assertRaises(ValueError):
             xor_mask(b"hello", b"")
+
+    def test_encrypt_then_mac_roundtrip(self):
+        enc_key = b"encryption-key-32-bytes-abcdefg!"
+        mac_key = b"authentication-key-32-bytes-hijk!"
+        plaintext = b"Transfer $50,000 to Account-998811"
+
+        packet = encrypt_then_mac(plaintext, enc_key, mac_key)
+        self.assertGreater(len(packet), 48)
+
+        recovered = mac_then_decrypt(packet, enc_key, mac_key)
+        self.assertEqual(recovered, plaintext)
+
+    def test_encrypt_then_mac_tampering(self):
+        enc_key = b"encryption-key-32-bytes-abcdefg!"
+        mac_key = b"authentication-key-32-bytes-hijk!"
+        plaintext = b"Confidential banking message"
+
+        packet = bytearray(encrypt_then_mac(plaintext, enc_key, mac_key))
+
+        # Tampering with ciphertext
+        packet[-1] ^= 0x01
+        with self.assertRaises(IntegrityError):
+            mac_then_decrypt(bytes(packet), enc_key, mac_key)
+
+        # Tampering with MAC tag
+        packet[-1] ^= 0x01  # restore ciphertext
+        packet[20] ^= 0x01   # corrupt MAC
+        with self.assertRaises(IntegrityError):
+            mac_then_decrypt(bytes(packet), enc_key, mac_key)
+
+    def test_encrypt_then_mac_validation(self):
+        with self.assertRaises(ValueError):
+            encrypt_then_mac(b"data", b"", b"mac")
+        with self.assertRaises(ValueError):
+            mac_then_decrypt(b"short", b"enc", b"mac")
 
 
 if __name__ == "__main__":

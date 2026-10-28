@@ -28,8 +28,10 @@ from coinnectar.core import (
 from coinnectar.crypto import (
     constant_time_compare,
     derive_key,
+    encrypt_then_mac,
     generate_key,
     generate_nonce,
+    mac_then_decrypt,
     sign_payload,
     verify_payload,
     xor_mask,
@@ -91,6 +93,8 @@ __all__ = [
     "generate_nonce",
     "derive_key",
     "xor_mask",
+    "encrypt_then_mac",
+    "mac_then_decrypt",
     # Utilities
     "crc32_checksum",
     "pkcs7_pad",

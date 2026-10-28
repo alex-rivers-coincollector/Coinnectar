@@ -10,7 +10,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import secrets
-from typing import Union
+from typing import Optional, Union
 
 try:
     from coinnectar import _native  # type: ignore
@@ -185,3 +185,73 @@ def verify_payload(
 
     computed = sign_payload(data, key, digestmod)
     return constant_time_compare(computed, expected_signature)
+
+
+def encrypt_then_mac(
+    plaintext: bytes,
+    enc_key: bytes,
+    mac_key: bytes,
+    nonce: Optional[bytes] = None,
+) -> bytes:
+    """
+    Apply authenticated encryption using Encrypt-then-MAC construction.
+
+    Layout: [16-byte nonce] + [32-byte HMAC-SHA256] + [ciphertext]
+
+    Args:
+        plaintext: Raw data to encrypt.
+        enc_key: Secret key used for stream encryption.
+        mac_key: Secret key used for MAC authentication.
+        nonce: Optional 16-byte nonce (generated if omitted).
+
+    Returns:
+        Authenticated ciphertext packet.
+    """
+    if not enc_key or not mac_key:
+        raise ValueError("Encryption and MAC keys must not be empty")
+
+    if nonce is None:
+        nonce = secrets.token_bytes(16)
+    elif len(nonce) != 16:
+        raise ValueError(f"Nonce must be exactly 16 bytes (got {len(nonce)})")
+
+    # Derive per-message stream key: HMAC(enc_key, nonce)
+    stream_key = hmac.new(enc_key, nonce, "sha256").digest()
+    ciphertext = xor_mask(plaintext, stream_key)
+
+    # MAC covers nonce + ciphertext
+    mac = sign_payload(nonce + ciphertext, mac_key, "sha256")
+    return nonce + mac + ciphertext
+
+
+def mac_then_decrypt(packet: bytes, enc_key: bytes, mac_key: bytes) -> bytes:
+    """
+    Verify MAC and decrypt an Encrypt-then-MAC payload.
+
+    Args:
+        packet: Combined [16B nonce][32B MAC][ciphertext] payload.
+        enc_key: Secret key used for decryption.
+        mac_key: Secret key used for MAC verification.
+
+    Returns:
+        Original decrypted plaintext.
+
+    Raises:
+        ValueError: If packet is shorter than 48 bytes (16 nonce + 32 MAC).
+        IntegrityError: If MAC verification fails (tampering detected).
+    """
+    from coinnectar.core import IntegrityError
+
+    if len(packet) < 48:
+        raise ValueError(f"Packet too short: minimum length is 48 bytes (got {len(packet)})")
+
+    nonce = packet[:16]
+    expected_mac = packet[16:48]
+    ciphertext = packet[48:]
+
+    computed_mac = sign_payload(nonce + ciphertext, mac_key, "sha256")
+    if not constant_time_compare(computed_mac, expected_mac):
+        raise IntegrityError("MAC verification failed: payload has been tampered with or key mismatch")
+
+    stream_key = hmac.new(enc_key, nonce, "sha256").digest()
+    return xor_mask(ciphertext, stream_key)
